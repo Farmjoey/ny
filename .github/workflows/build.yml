@@ -13,6 +13,7 @@ jobs:
           python-version: '3.11'
       - run: pip install platformio
       - run: pio run -e ${{ matrix.env }}
+      - run: pip install esptool
       - name: Saml factory image
         run: |
           B=.pio/build/${{ matrix.env }}
