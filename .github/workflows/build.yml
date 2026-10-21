@@ -1,0 +1,29 @@
+name: build
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        env: [cyd_st7789, cyd_ili9341]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install platformio
+      - run: pio run -e ${{ matrix.env }}
+      - name: Saml factory image
+        run: |
+          B=.pio/build/${{ matrix.env }}
+          python -m esptool --chip esp32 merge_bin -o NOVA_RIDE_${{ matrix.env }}.factory.bin \
+            --flash_mode dio --flash_size 4MB \
+            0x1000 $B/bootloader.bin 0x8000 $B/partitions.bin 0x10000 $B/firmware.bin
+          cp $B/firmware.bin NOVA_RIDE_${{ matrix.env }}.bin
+          sha256sum NOVA_RIDE_${{ matrix.env }}*.bin | tee SHA256SUMS_${{ matrix.env }}.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nova-${{ matrix.env }}
+          path: |
+            NOVA_RIDE_${{ matrix.env }}*.bin
+            SHA256SUMS_${{ matrix.env }}.txt
